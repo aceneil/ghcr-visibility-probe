@@ -1,0 +1,27 @@
+name: probe-visibility
+
+# 探针：验证「公开仓库 + GITHUB_TOKEN 发布的包会继承为 public」这条规则
+# 只推一个 alpine 重命名镜像，不涉及任何私密内容；验证完即删仓库与包。
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Login to GHCR with the repo token
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish a throwaway image
+        run: |
+          docker pull alpine:3.20
+          docker tag alpine:3.20 ghcr.io/aceneil/ghcr-visibility-probe:latest
+          docker push ghcr.io/aceneil/ghcr-visibility-probe:latest
